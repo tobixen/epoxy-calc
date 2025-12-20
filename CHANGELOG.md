@@ -11,7 +11,8 @@ I made this script long ago, and have been using it many times later - without c
 
 ### Changed
 
-- Lifted the project up to "best current practices", aiming for PyPI distribtion
+- Lifted the project up to "best current practices", aiming for PyPI distribution
+- Updated README with proper installation instructions
 
 ### Fixed
 
