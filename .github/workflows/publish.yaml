@@ -60,7 +60,7 @@ jobs:
     - name: Install build tools
       run: |
         python -m pip install --upgrade pip
-        pip install build
+        pip install build poetry-dynamic-versioning
 
     - name: Verify version from git tags
       run: |
@@ -69,7 +69,8 @@ jobs:
 
     - name: Build package
       run: |
-        # Build using PEP 517 with poetry-dynamic-versioning backend
+        # Apply version from git tag before building
+        poetry-dynamic-versioning
         python -m build --sdist --wheel
 
     - name: Display built packages
