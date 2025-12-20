@@ -33,7 +33,16 @@ Repository = "https://github.com/tobixen/epoxy-calc"
 epoxy-calc = "epoxy_calc:cli"
 
 [tool.poetry]
+name = "epoxy-calc"
+version = "0.0.0"
+description = "Swell-resistant epoxy mix calculator"
+authors = ["Tobias Brox <t-epoxy@tobixen.no>"]
+readme = "README.md"
 packages = [{include = "epoxy_calc"}]
+
+[tool.poetry.dependencies]
+python = ">=3.9"
+Click = "*"
 
 [tool.poetry.group.dev.dependencies]
 pytest = ">=7.0"
