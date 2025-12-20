@@ -3,6 +3,12 @@
 The format of this file is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.4] - 2025-12-20
+
+### Changed
+
+- Updated README with proper installation instructions (and some minor tweaks to the text)
+
 ## [1.0.3] - 2025-12-20
 
 Those days I'm taking a round over most of my python repositories and brushing them up to "best current practices" with ruff, auto-versioning and auto-publish-to-pypi.
@@ -12,7 +18,6 @@ I made this script long ago, and have been using it many times later - without c
 ### Changed
 
 - Lifted the project up to "best current practices", aiming for PyPI distribution
-- Updated README with proper installation instructions
 
 ### Fixed
 
