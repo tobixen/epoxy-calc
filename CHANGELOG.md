@@ -3,18 +3,11 @@
 The format of this file is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.0.1] - 2025-12-20
 
 ### Changed
 
-- Modernized package structure for PyPI distribution
-- Converted to proper Python package structure (epoxy_calc/)
-- Added pyproject.toml with Poetry and poetry-dynamic-versioning
-- Added ruff linting configuration
-- Added pre-commit hooks for code quality
-- Added GitHub Actions CI workflow (Python 3.9-3.13)
-- Added GitHub Actions PyPI publish workflow with trusted publishing
-- Moved tests to tests/ directory
+- Lifted the project up to "best current practices", aiming for PyPI distribtion
 
 ### Fixed
 
