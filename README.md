@@ -12,12 +12,23 @@ This small program attempts to solve three problems:
 * The calculation problem.  It's easy enough to do the math in the head if adding 100g of base and then 60g of hardener.  It's usually also easy to do the math in the head if adding, say, 20g of base and then 12g of hardener.  Now, what if you've tried measuring 20g of base and ends up with 23.5g?  Of course, still possible to do the math in the head, but the computer is more reliable at that (and possibly faster).
 * The overshoot calculation problem.  So you've added 23.5g of base, that means you should add 14.1g of hardener, but ... oups, now there is 16.5g of hardener in the jar.  How much more base is it needed to add?
 
+## Installation
+
+```bash
+pip install epoxy-calc
+```
+
+Or with pipx:
+
+```bash
+pipx install epoxy-calc
+```
+
 ## Usage
 
-As for now, just download the script, install the python package `click` and run the script.  It will interactively ask you for minimum six readings of the tara, six readings of the tara + base total weight, then it will tell how much hardener to add, ask for six more readings of the total weight, tell how much base or hardener should be added, etc, all until the ratio is more or less correct.
+Run `epoxy-calc` from the command line. It will interactively ask you for minimum six readings of the tara, six readings of the tara + base total weight, then it will tell how much hardener to add, ask for six more readings of the total weight, tell how much base or hardener should be added, etc, all until the ratio is more or less correct.
 
 ## Future plans
 
 * Accept one number instead of six.  I'll definitively fix this before mixing epoxy on the hard the next time.  This script was initially written to solve the wave problem, but it's useful also for solving calculation and overshoot problems.
 * Command line options.  I've imported the `click`-library for this purpose, but I only use it for creating prompts and output.
-* Package wrapping - should create a version number and a changelog, should make this up to the latest pypi standards, push to pypi, etc
