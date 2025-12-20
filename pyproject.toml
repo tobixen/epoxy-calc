@@ -27,7 +27,7 @@ dependencies = [
 ]
 
 [project.urls]
-Repository = "https://github.com/tobixen/epoxy-mix-calc"
+Repository = "https://github.com/tobixen/epoxy-calc"
 
 [project.scripts]
 epoxy-calc = "epoxy_calc:cli"
