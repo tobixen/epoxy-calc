@@ -3,17 +3,7 @@
 The format of this file is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.0.5] - 2025-12-20
-
-### Changed
-
-- Updated README with proper installation instructions (and some minor tweaks to the text)
-
-## [1.0.4] - 2025-12-20 [YANKED]
-
-Still problems with the auto-publish / auto-versioning
-
-## [1.0.3] - 2025-12-20
+## [1.0.6] - 2025-12-20
 
 Those days I'm taking a round over most of my python repositories and brushing them up to "best current practices" with ruff, auto-versioning and auto-publish-to-pypi.
 
@@ -28,23 +18,16 @@ I made this script long ago, and have been using it many times later - without c
 - Fixed type comparisons to use `isinstance()` instead of `type() ==`
 - Fixed bare `except` clause to catch `ValueError`
 
-## [1.0.2] - 2025-12-20 [YANKED]
+### Changed
 
-"Do not release things in the middle of the night" I told myself long time ago.
+- Updated README with proper installation instructions (and some minor tweaks to the text)
 
-## [1.0.1] - 2025-12-20 [YANKED]
+## [1.0.5] - 2025-12-20 [YANKED]
 
-Yanked, because the pypi publish pipeline failed due to project name confusion.  On my laptop it's located under `~/epoxy` - the command name was `epoxy_calc` - and the github repo was `epoxy_mix_calc`!  What a mess.  Let it be `epoxy_calc`, and only that!
+The observant reader may see that there are many versions missing here, 1.0.5 is not the only "yanked" version.  The pipeline for pushing to pypi didn't work for various reasons, including some name confusions (on my laptop it's located under `~/epoxy` - the command name was `epoxy_calc` - and the github repo was `epoxy_mix_calc`!  What a mess.  Let it be `epoxy_calc`, and only that!)
 
-## [1.0.0] - 2025-12-20 [YANKED]
-
-Yanked, because the CHANGELOG wasn't updated, and because the pypi publish pipeline failed due to project name confusion.
+1.0.6 is the first version to be successfully released on pypi.
 
 ## [0.0.1] - 2024-01-14
 
-### Added
-
-- Initial release
-- Interactive CLI for calculating epoxy base/hardener ratios
-- Swell-resistant measurement system using multiple readings to find midpoint
-- Automatic correction when too much hardener or base is added
+The first revision of the script was made and pushed to github.
