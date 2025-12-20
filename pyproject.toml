@@ -41,13 +41,14 @@ readme = "README.md"
 packages = [{include = "epoxy_calc"}]
 
 [tool.poetry.dependencies]
-python = ">=3.9"
+python = ">=3.9,<4"
 Click = "*"
 
 [tool.poetry.group.dev.dependencies]
 pytest = ">=7.0"
 pytest-cov = ">=4.0"
 ruff = ">=0.1.0"
+deptry = {version = ">=0.24.0", python = ">=3.10"}
 
 [tool.poetry-dynamic-versioning]
 enable = true
