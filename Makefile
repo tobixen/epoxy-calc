@@ -1,16 +1,24 @@
-.PHONY: help install test lint format check clean build
+.PHONY: help install install-dev test lint format check clean build
 
 help:
 	@echo "Available targets:"
-	@echo "  install  - Install dependencies with poetry"
-	@echo "  test     - Run tests with pytest"
-	@echo "  lint     - Run ruff linter"
-	@echo "  format   - Format code with ruff"
-	@echo "  check    - Run all checks (lint, deptry, test)"
-	@echo "  clean    - Remove build artifacts"
-	@echo "  build    - Build package"
+	@echo "  install      - Install epoxy-calc (user or system-wide with sudo)"
+	@echo "  install-dev  - Install dev dependencies with poetry"
+	@echo "  test         - Run tests with pytest"
+	@echo "  lint         - Run ruff linter"
+	@echo "  format       - Format code with ruff"
+	@echo "  check        - Run all checks (lint, deptry, test)"
+	@echo "  clean        - Remove build artifacts"
+	@echo "  build        - Build package"
 
 install:
+	@if [ "$$(id -u)" = "0" ]; then \
+		pip install .; \
+	else \
+		pip install --user .; \
+	fi
+
+install-dev:
 	poetry install
 
 test:
