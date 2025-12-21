@@ -60,8 +60,7 @@ jobs:
     - name: Install build tools
       run: |
         python -m pip install --upgrade pip
-        pip install build poetry poetry-dynamic-versioning[plugin]
-        poetry self add poetry-dynamic-versioning[plugin]
+        pip install build
 
     - name: Verify version from git tags
       run: |
@@ -70,10 +69,8 @@ jobs:
 
     - name: Build package
       run: |
-        # Use poetry to build (properly handles dynamic versioning)
-        poetry build
-        echo "Built packages:"
-        ls -la dist/
+        # Build using PEP 517 with poetry-dynamic-versioning backend
+        python -m build --sdist --wheel
 
     - name: Display built packages
       run: |
