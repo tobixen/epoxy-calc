@@ -5,11 +5,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+I asked the AI to do a code review and fix some annoyances.  It will be released once it's tested.  Testing will only happen next time I mix epoxy ...
+
 ### Added
 
+- Makefile
 - Command line option `--min-readings` / `-n` to control minimum readings per measurement (default: 6 for wave compensation, use 1 for stable conditions)
 - Undo support: type 'undo' during input to remove the last entered reading
 - Outlier warnings: alerts when a reading deviates significantly from previous ones
+- Help text at startup and in warnings about undo feature
 
 ### Fixed
 
