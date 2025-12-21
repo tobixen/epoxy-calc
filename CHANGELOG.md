@@ -3,9 +3,9 @@
 The format of this file is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.1.0] - 2025-12-21
 
-I asked the AI to do a code review and fix some annoyances.  It will be released once it's tested.  Testing will only happen next time I mix epoxy ...
+I asked the AI to do a code review and fix some annoyances.  I've done a quick "dry test", but it will probably be a month until next time I mix epoxy ...
 
 ### Added
 
@@ -13,7 +13,6 @@ I asked the AI to do a code review and fix some annoyances.  It will be released
 - Command line option `--min-readings` / `-n` to control minimum readings per measurement (default: 6 for wave compensation, use 1 for stable conditions)
 - Undo support: type 'undo' during input to remove the last entered reading
 - Outlier warnings: alerts when a reading deviates significantly from previous ones
-- Help text at startup and in warnings about undo feature
 
 ### Fixed
 
