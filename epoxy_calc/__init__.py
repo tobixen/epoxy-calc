@@ -94,12 +94,13 @@ def interactive_read_numbers(what, min_readings=6):
             click.echo("Not a number! Try again (or type 'undo' to remove last entry)")
             continue
         if check_outlier(number, ret):
-            click.echo(f"Warning: {number} seems quite different from previous readings.")
+            click.echo(f"Warning: {number} seems quite different from previous readings. Type 'undo' to remove it.")
         ret.append(number)
     return ret
 
 
 def interactive(min_readings=6):
+    click.echo("Tip: Type 'undo' to remove the last entered reading.")
     part100 = float(click.prompt("How many grams of hardener is needed for 100g of base"))
     if min_readings >= 6:
         click.echo("Measure the tara. Enter the observed tara at least six times.")
