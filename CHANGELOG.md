@@ -3,6 +3,19 @@
 The format of this file is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- Command line option `--min-readings` / `-n` to control minimum readings per measurement (default: 6 for wave compensation, use 1 for stable conditions)
+- Undo support: type 'undo' during input to remove the last entered reading
+- Outlier warnings: alerts when a reading deviates significantly from previous ones
+
+### Fixed
+
+- `chop_extremes()` no longer mutates the input list (uses `sorted()` instead of in-place `sort()`)
+- Graceful error handling when weight doesn't increase instead of crashing with assertion error
+
 ## [1.0.10] - 2025-12-20
 
 Those days I'm taking a round over most of my python repositories and brushing them up to "best current practices" with ruff, auto-versioning and auto-publish-to-pypi.
