@@ -33,5 +33,5 @@ Run `epoxy-calc` from the command line. It will interactively ask you for minimu
 
 ## Future plans
 
-* Accept one number instead of six.  I'll definitively fix this before mixing epoxy on the hard the next time.  This script was initially written to solve the wave problem, but it's useful also for solving calculation and overshoot problems.
-* Command line options.  I've imported the `click`-library for this purpose, but I only use it for creating prompts and output.
+Moved to [TODO.md](TODO.md)
+
