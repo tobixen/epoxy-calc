@@ -3,6 +3,23 @@
 The format of this file is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- `--ratio` / `-r` option to pre-set the hardener ratio from the command line (skips the ratio prompt)
+- `--epoxy-type` / `-e` option and interactive "What kind of epoxy?" question (optional, press Enter to skip)
+- `--min-deviation` option: exit threshold as a percentage of total epoxy weight (default 1%), replacing the old hardcoded 0.25g absolute threshold
+- `--deviation-factor` option: the exit threshold grows by this factor per correction iteration (default 1.5×), reflecting increasing measurement uncertainty
+- `--log-file` option: session log written to `~/.local/share/epoxy-calc/epoxy.log` (timestamp, epoxy type, total weight)
+- Input guard rails: warnings when ratio is outside 30–100 or non-integer, when decimal style changes mid-session, or when a reading deviates >15% from the mean — with sticky "yes I'm sure" confirmation
+- Output improvements: blank line between sections, current total weight in info block, bold "total weight needed" line, bold "Ratio:" prompt
+- Type "-" at any weight prompt to abort the session cleanly
+
+### Changed
+
+- `find_midpoint()` now scales the number of trimmed extremes to ~20% of the collection size (n//5 per side) instead of always trimming 2 when `min_readings ≥ 6`
+
 ## [1.1.0] - 2025-12-21
 
 I asked the AI to do a code review and fix some annoyances.  I've done a quick "dry test", but it will probably be a month until next time I mix epoxy ...
