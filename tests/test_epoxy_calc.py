@@ -12,6 +12,8 @@ from epoxy_calc import (
     find_midpoint,
     interactive,
     interactive_read_numbers,
+    load_epoxy_types,
+    save_epoxy_type,
 )
 
 
@@ -390,4 +392,87 @@ def test_exit_on_dash(prompt):
 
     interactive(min_readings=1, epoxy_type="")
 
+    assert not input_list
+
+
+# --- Config persistence tests ---
+
+
+def test_load_epoxy_types_missing_file():
+    assert load_epoxy_types() == {}
+
+
+def test_load_epoxy_types_corrupt_file(tmp_path):
+    import epoxy_calc
+    corrupt = tmp_path / "corrupt.json"
+    corrupt.write_text("not valid json{{{")
+    with mock.patch("epoxy_calc.CONFIG_FILE", str(corrupt)):
+        assert load_epoxy_types() == {}
+
+
+def test_save_and_load_epoxy_type():
+    save_epoxy_type("West System 105/205", 60.0)
+    save_epoxy_type("Epifanes", 45.0)
+    result = load_epoxy_types()
+    assert result == {"West System 105/205": 60.0, "Epifanes": 45.0}
+
+
+def test_save_epoxy_type_overwrites_ratio():
+    save_epoxy_type("West System 105/205", 60.0)
+    save_epoxy_type("West System 105/205", 55.0)
+    assert load_epoxy_types()["West System 105/205"] == 55.0
+
+
+@mock.patch("epoxy_calc.click.prompt")
+def test_interactive_prefills_known_ratio(prompt, tmp_path):
+    save_epoxy_type("West System 105/205", 60.0)
+    # epoxy type -> "use saved ratio? y" -> tara -> base -> hardener done
+    input_list = ["West System 105/205", "y", "0", "---", "100", "---", "160", "---"]
+
+    def prompt_mocked(text, default=""):
+        return input_list.pop(0)
+
+    prompt.side_effect = prompt_mocked
+    interactive(min_readings=1, log_file=str(tmp_path / "epoxy.log"))
+    assert not input_list
+
+
+@mock.patch("epoxy_calc.click.prompt")
+def test_interactive_can_decline_saved_ratio(prompt, tmp_path):
+    save_epoxy_type("West System 105/205", 60.0)
+    # decline saved ratio ("n"), then enter a different ratio
+    input_list = ["West System 105/205", "n", "45", "0", "---", "100", "---", "145", "---"]
+
+    def prompt_mocked(text, default=""):
+        return input_list.pop(0)
+
+    prompt.side_effect = prompt_mocked
+    interactive(min_readings=1, log_file=str(tmp_path / "epoxy.log"))
+    assert not input_list
+
+
+@mock.patch("epoxy_calc.click.prompt")
+def test_interactive_saves_epoxy_type_after_run(prompt, tmp_path):
+    # Unknown type entered; after a successful run it should be saved in config
+    input_list = ["NewEpoxy", "60", "0", "---", "100", "---", "160", "---"]
+
+    def prompt_mocked(text, default=""):
+        return input_list.pop(0)
+
+    prompt.side_effect = prompt_mocked
+    interactive(min_readings=1, log_file=str(tmp_path / "epoxy.log"))
+    assert not input_list
+    assert load_epoxy_types().get("NewEpoxy") == 60.0
+
+
+@mock.patch("epoxy_calc.click.prompt")
+def test_interactive_unknown_epoxy_type_skips_prefill(prompt, tmp_path):
+    # No saved config for this type -> proceeds straight to ratio prompt
+    input_list = ["UnknownEpoxy", "60", "0", "---", "100", "---", "160", "---"]
+
+    def prompt_mocked(text, default=""):
+        return input_list.pop(0)
+
+    prompt.side_effect = prompt_mocked
+    interactive(min_readings=1, log_file=str(tmp_path / "epoxy.log"))
     assert not input_list

@@ -5,9 +5,35 @@ compensating for measurement inaccuracies by using multiple measurements.
 """
 
 import datetime
+import json
 import os
 
 import click
+
+try:
+    import readline as _readline
+    _HAS_READLINE = True
+except ImportError:
+    _HAS_READLINE = False
+
+_XDG_CONFIG_HOME = os.environ.get("XDG_CONFIG_HOME", os.path.expanduser("~/.config"))
+CONFIG_FILE = os.path.join(_XDG_CONFIG_HOME, "epoxy-calc", "epoxy-types.json")
+
+
+def load_epoxy_types() -> dict:
+    try:
+        with open(CONFIG_FILE) as f:
+            return json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError):
+        return {}
+
+
+def save_epoxy_type(name: str, ratio: float) -> None:
+    config = load_epoxy_types()
+    config[name] = ratio
+    os.makedirs(os.path.dirname(CONFIG_FILE), exist_ok=True)
+    with open(CONFIG_FILE, "w") as f:
+        json.dump(config, f, indent=2)
 
 
 def avg(coll):
@@ -59,7 +85,11 @@ def find_hardener(tara, base, hardener, tot_weight, adding, part100, min_reading
     click.echo(f"more hardener needed: {hardener_needed:.1f}g")
     total_needed = tara + base + hardener + max(hardener_needed, -hardener_needed / part100 * 100)
     what_needed = "hardener" if hardener_needed >= 0 else "base"
-    click.echo(click.style(f"total weight needed: {total_needed:.1f}g ({what_needed})", bold=True))
+    click.echo(
+        click.style("total weight needed: ", bold=True)
+        + click.style(f"{total_needed:.1f}g", bold=True, fg="yellow")
+        + click.style(f" ({what_needed})", bold=True)
+    )
     return (tara, base, hardener, hardener_needed)
 
 
@@ -186,19 +216,51 @@ def write_log(log_file, epoxy_type, tara, base, hardener, part100):
         )
 
 
+def _prompt_epoxy_type(known_types: dict) -> str:
+    """Prompt for epoxy type with tab completion and readline history from known types."""
+    if _HAS_READLINE:
+        orig_completer = _readline.get_completer()
+        orig_delims = _readline.get_completer_delims()
+        type_names = list(known_types.keys())
+
+        def _completer(text, state):
+            matches = [n for n in type_names if n.lower().startswith(text.lower())]
+            return matches[state] if state < len(matches) else None
+
+        for name in reversed(type_names):
+            _readline.add_history(name)
+        _readline.set_completer(_completer)
+        _readline.set_completer_delims("")
+        _readline.parse_and_bind("tab: complete")
+        try:
+            return click.prompt("What kind of epoxy?", default="") or None
+        finally:
+            _readline.set_completer(orig_completer)
+            _readline.set_completer_delims(orig_delims)
+    return click.prompt("What kind of epoxy?", default="") or None
+
+
 def interactive(min_readings=6, ratio=None, min_deviation=1.0, deviation_factor=1.5, epoxy_type=None, log_file=None):
     if log_file is None:
         log_file = DEFAULT_LOG_FILE
     click.echo("Tip: Type 'undo' to remove the last entered reading.")
     confirmed_ok: set = set()
+    known_types = load_epoxy_types()
     if epoxy_type is None:
-        epoxy_type = click.prompt("What kind of epoxy?", default="") or None
+        epoxy_type = _prompt_epoxy_type(known_types)
     if epoxy_type:
         click.echo(f"Epoxy type: {epoxy_type}")
+    part100 = None
     if ratio is not None:
         part100 = float(ratio)
         click.echo(f"Hardener ratio: {part100}g per 100g base (preset)")
-    else:
+    elif epoxy_type and epoxy_type in known_types:
+        saved_ratio = known_types[epoxy_type]
+        click.echo(f"Known ratio for {epoxy_type}: {saved_ratio:.0f}g per 100g base")
+        answer = click.prompt("Use this ratio? (y/n)", default="y")
+        if answer.lower() == "y":
+            part100 = saved_ratio
+    if part100 is None:
         while True:
             click.echo("How many grams of hardener is needed for 100g of base?")
             part100 = float(click.prompt(click.style("Ratio", bold=True)))
@@ -252,6 +314,8 @@ def interactive(min_readings=6, ratio=None, min_deviation=1.0, deviation_factor=
         current_threshold = min_deviation * (deviation_factor ** correction_count)
         if target_amount > 0 and mass_needed / target_amount < current_threshold / 100:
             write_log(log_file, epoxy_type, tara, base, hardener, part100)
+            if epoxy_type:
+                save_epoxy_type(epoxy_type, part100)
             return
         if min_readings >= 6:
             click.echo(f"Try to add {mass_needed:.1f}g {what_needed}. Enter the observed total weight at least six times.")

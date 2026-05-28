@@ -13,7 +13,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `--deviation-factor` option: the exit threshold grows by this factor per correction iteration (default 1.5×), reflecting increasing measurement uncertainty
 - `--log-file` option: session log written to `~/.local/share/epoxy-calc/epoxy.log` (timestamp, epoxy type, total weight)
 - Input guard rails: warnings when ratio is outside 30–100 or non-integer, when decimal style changes mid-session, or when a reading deviates >15% from the mean — with sticky "yes I'm sure" confirmation
-- Output improvements: blank line between sections, current total weight in info block, bold "total weight needed" line, bold "Ratio:" prompt
+- Output improvements: blank line between sections, current total weight in info block, bold "total weight needed" line with yellow-highlighted weight value, bold "Ratio:" prompt
+- Epoxy type and ratio are saved to `~/.config/epoxy-calc/epoxy-types.json` (XDG) after each successful session
+- Known epoxy types are prefilled with their saved ratio on the next run (with an accept/decline prompt)
+- Tab completion and readline history for the "What kind of epoxy?" prompt (populated from saved types)
 - Type "-" at any weight prompt to abort the session cleanly
 
 ### Changed
