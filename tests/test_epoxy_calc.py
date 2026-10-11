@@ -1,3 +1,4 @@
+import os
 import pytest
 from unittest import mock
 
@@ -476,3 +477,137 @@ def test_interactive_unknown_epoxy_type_skips_prefill(prompt, tmp_path):
     prompt.side_effect = prompt_mocked
     interactive(min_readings=1, log_file=str(tmp_path / "epoxy.log"))
     assert not input_list
+
+
+# --- Review fixes (2026-10-11) ---
+
+
+def test_validate_weight_format_uses_typed_text():
+    from epoxy_calc import validate_weight_format
+    # "34.0" is decimal style even though its value is a whole number
+    assert validate_weight_format("34.0", ["34.3"]) is None
+    assert validate_weight_format("34.3", ["34.0"]) is None
+    assert validate_weight_format("34", ["34.3"]) is not None
+    assert validate_weight_format("34.3", ["34", "35"]) is not None
+
+
+@mock.patch("epoxy_calc.click.prompt")
+def test_reading_34_0_after_34_3_does_not_warn(prompt):
+    input_list = ["34.3", "34.0", "---"]
+    texts = []
+
+    def prompt_mocked(text, default=""):
+        texts.append(text)
+        return input_list.pop(0)
+
+    prompt.side_effect = prompt_mocked
+    assert interactive_read_numbers("tara", min_readings=1) == [34.3, 34.0]
+    assert not any("sure" in t for t in texts)
+
+
+def test_conftest_isolates_the_real_log_file():
+    import epoxy_calc
+    assert not epoxy_calc.DEFAULT_LOG_FILE.startswith(os.path.expanduser("~/.local"))
+
+
+@mock.patch("epoxy_calc.click.prompt")
+def test_dash_after_base_logs_the_mix(prompt, tmp_path):
+    # "-" means "enough now": the mix is done, so it is logged
+    log_file = tmp_path / "epoxy.log"
+    input_list = ["Teorita", "60", "0", "---", "100", "---", "155", "---", "-"]
+
+    def prompt_mocked(text, default=""):
+        return input_list.pop(0)
+
+    prompt.side_effect = prompt_mocked
+    interactive(min_readings=1, log_file=str(log_file))
+    assert not input_list
+    lines = log_file.read_text().splitlines()
+    assert len(lines) == 1
+    assert "Teorita" in lines[0] and "hardener=55.0g" in lines[0]
+    assert load_epoxy_types() == {"Teorita": 60.0}
+
+
+@mock.patch("epoxy_calc.click.prompt")
+def test_dash_before_base_logs_nothing(prompt, tmp_path):
+    log_file = tmp_path / "epoxy.log"
+    input_list = ["", "60", "0", "---", "-"]
+
+    def prompt_mocked(text, default=""):
+        return input_list.pop(0)
+
+    prompt.side_effect = prompt_mocked
+    interactive(min_readings=1, log_file=str(log_file))
+    assert not log_file.exists()
+
+
+@pytest.mark.parametrize("ratio", [0, -5])
+def test_preset_ratio_must_be_positive(ratio):
+    runner = CliRunner()
+    result = runner.invoke(cli, ["--ratio", str(ratio), "-e", "x", "-n", "1"], input="")
+    assert result.exit_code != 0
+    assert "must be positive" in result.output
+    assert not isinstance(result.exception, ZeroDivisionError)
+
+
+@mock.patch("epoxy_calc.click.prompt")
+def test_non_numeric_ratio_is_asked_again(prompt):
+    input_list = ["abc", "60", "0", "---", "100", "---", "160", "---"]
+
+    def prompt_mocked(text, default=""):
+        return input_list.pop(0)
+
+    prompt.side_effect = prompt_mocked
+    interactive(min_readings=1, epoxy_type="")
+    assert not input_list
+
+
+def test_write_log_to_bare_filename(tmp_path, monkeypatch):
+    from epoxy_calc import write_log
+    monkeypatch.chdir(tmp_path)
+    write_log("epoxy.log", "x", 0, 100, 60, 60)
+    assert (tmp_path / "epoxy.log").exists()
+
+
+def test_write_log_reports_unwritable_file(tmp_path, capsys):
+    from epoxy_calc import write_log
+    write_log(str(tmp_path / "missing-dir-is-a-file"), "x", 0, 100, 60, 60)
+    blocker = tmp_path / "blocker"
+    blocker.write_text("")
+    write_log(str(blocker / "epoxy.log"), "x", 0, 100, 60, 60)
+    assert "could not" in capsys.readouterr().out.lower()
+
+
+@mock.patch("epoxy_calc.click.prompt")
+def test_mis_entered_weight_does_not_loosen_threshold(prompt):
+    # tara=0, base=100, ratio 60 -> target hardener 60g.
+    # "100" is a mis-entry (no increase); its re-entry replaces it and must
+    # not count as one more correction.  159.0 -> need 1.0g = 1.67%: above
+    # the 1.5% of one correction, so the session continues; 159.6 -> 0.67%
+    # exits.  Counted twice (2.25%), 159.0 would exit early and leave
+    # "159.6" unconsumed.
+    input_list = ["60", "0", "---", "100", "---", "100", "---", "159.0", "---", "159.6", "---"]
+
+    def prompt_mocked(text, default=""):
+        return input_list.pop(0)
+
+    prompt.side_effect = prompt_mocked
+    interactive(min_readings=1, epoxy_type="")
+    assert not input_list
+
+
+@mock.patch("epoxy_calc.click.prompt")
+def test_fractional_saved_ratio_is_shown_and_logged_exactly(prompt, tmp_path):
+    save_epoxy_type("Odd", 45.5)
+    log_file = tmp_path / "epoxy.log"
+    texts = []
+    input_list = ["Odd", "y", "0", "---", "100", "---", "145.5", "---"]
+
+    def prompt_mocked(text, default=""):
+        return input_list.pop(0)
+
+    prompt.side_effect = prompt_mocked
+    with mock.patch("epoxy_calc.click.echo", side_effect=lambda m="": texts.append(str(m))):
+        interactive(min_readings=1, log_file=str(log_file))
+    assert any("45.5g per 100g" in t for t in texts)
+    assert "ratio=45.5%" in log_file.read_text()

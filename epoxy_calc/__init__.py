@@ -103,7 +103,12 @@ def validate_ratio(ratio):
 
 
 def _is_integer_style(value):
-    """Return True if value has no significant decimal part."""
+    """Return True if value was typed without a decimal part.
+
+    For a string the typed text decides, so "34.0" is decimal style.
+    """
+    if isinstance(value, str):
+        return "." not in value and "," not in value
     return value == int(value)
 
 
@@ -158,6 +163,7 @@ def interactive_read_numbers(what, min_readings=6, confirmed_ok=None):
     if confirmed_ok is None:
         confirmed_ok = set()
     ret = []
+    typed = []  # the readings as typed, for the decimal-style check
     while True:
         number = click.prompt(f"Enter {what}", default="---")
         if number == "---":
@@ -170,17 +176,19 @@ def interactive_read_numbers(what, min_readings=6, confirmed_ok=None):
         if number.lower() == "undo":
             if ret:
                 removed = ret.pop()
+                typed.pop()
                 click.echo(f"Removed {removed:.1f}. {len(ret)} reading(s) remaining.")
             else:
                 click.echo("Nothing to undo.")
             continue
+        raw = number.strip()
         try:
-            number = float(number)
+            number = float(raw)
         except ValueError:
             click.echo("Not a number! Try again (or type 'undo' to remove last entry)")
             continue
         checks = [
-            ("format", validate_weight_format(number, ret)),
+            ("format", validate_weight_format(raw, typed)),
             ("spread", validate_spread(number, ret)),
         ]
         discard = False
@@ -198,6 +206,7 @@ def interactive_read_numbers(what, min_readings=6, confirmed_ok=None):
         if check_outlier(number, ret):
             click.echo(f"Warning: {number} seems quite different from previous readings. Type 'undo' to remove it.")
         ret.append(number)
+        typed.append(raw)
     return ret
 
 
@@ -205,15 +214,30 @@ DEFAULT_LOG_FILE = os.path.expanduser("~/.local/share/epoxy-calc/epoxy.log")
 
 
 def write_log(log_file, epoxy_type, tara, base, hardener, part100):
-    os.makedirs(os.path.dirname(log_file), exist_ok=True)
     timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
     epoxy_label = epoxy_type if epoxy_type else "(unspecified)"
     total = tara + base + hardener
-    with open(log_file, "a") as f:
-        f.write(
-            f"{timestamp}  {epoxy_label}  ratio={part100:.0f}%"
-            f"  tara={tara:.1f}g  base={base:.1f}g  hardener={hardener:.1f}g  total={total:.1f}g\n"
-        )
+    try:
+        log_dir = os.path.dirname(log_file)
+        if log_dir:
+            os.makedirs(log_dir, exist_ok=True)
+        with open(log_file, "a") as f:
+            f.write(
+                f"{timestamp}  {epoxy_label}  ratio={part100:g}%"
+                f"  tara={tara:.1f}g  base={base:.1f}g  hardener={hardener:.1f}g  total={total:.1f}g\n"
+            )
+    except OSError as e:
+        click.echo(f"Could not write the log file {log_file}: {e}")
+
+
+def _finish(log_file, epoxy_type, tara, base, hardener, part100):
+    """Log the mix and remember the epoxy type's ratio."""
+    write_log(log_file, epoxy_type, tara, base, hardener, part100)
+    if epoxy_type:
+        try:
+            save_epoxy_type(epoxy_type, part100)
+        except OSError as e:
+            click.echo(f"Could not save the ratio for {epoxy_type}: {e}")
 
 
 def _prompt_epoxy_type(known_types: dict) -> str:
@@ -253,17 +277,29 @@ def interactive(min_readings=6, ratio=None, min_deviation=1.0, deviation_factor=
     part100 = None
     if ratio is not None:
         part100 = float(ratio)
-        click.echo(f"Hardener ratio: {part100}g per 100g base (preset)")
+        if part100 <= 0:
+            raise click.BadParameter("the ratio must be positive", param_hint="--ratio")
+        warning = validate_ratio(part100)
+        if warning:
+            click.echo(f"Warning: {warning}")
+        click.echo(f"Hardener ratio: {part100:g}g per 100g base (preset)")
     elif epoxy_type and epoxy_type in known_types:
         saved_ratio = known_types[epoxy_type]
-        click.echo(f"Known ratio for {epoxy_type}: {saved_ratio:.0f}g per 100g base")
+        click.echo(f"Known ratio for {epoxy_type}: {saved_ratio:g}g per 100g base")
         answer = click.prompt("Use this ratio? (y/n)", default="y")
         if answer.lower() == "y":
             part100 = saved_ratio
     if part100 is None:
         while True:
             click.echo("How many grams of hardener is needed for 100g of base?")
-            part100 = float(click.prompt(click.style("Ratio", bold=True)))
+            try:
+                part100 = float(click.prompt(click.style("Ratio", bold=True)))
+            except ValueError:
+                click.echo("Not a number! Try again.")
+                continue
+            if part100 <= 0:
+                click.echo("The ratio must be positive. Try again.")
+                continue
             warning = validate_ratio(part100)
             if warning and "ratio" not in confirmed_ok:
                 click.echo(f"Warning: {warning}")
@@ -286,10 +322,18 @@ def interactive(min_readings=6, ratio=None, min_deviation=1.0, deviation_factor=
     base = interactive_read_numbers("total weight base+tara", min_readings, confirmed_ok=confirmed_ok)
     if base is None:
         return
+    # From here on base is in the cup: "-" means "enough now", so the
+    # mix as last measured is logged.  Ctrl-C (click.Abort) logs nothing.
     hardener = 0
     what_needed = "hardener"
     total_weight = None
     correction_count = 0
+    last = None
+
+    def _finish_last():
+        if last is not None:
+            _finish(log_file, epoxy_type, *last, part100)
+
     while True:
         result = find_hardener(tara, base, hardener, total_weight, what_needed, part100, min_readings)
         if result is None:
@@ -298,10 +342,13 @@ def interactive(min_readings=6, ratio=None, min_deviation=1.0, deviation_factor=
                 f"total weight tara+base+hardener after adding {what_needed}", min_readings, confirmed_ok=confirmed_ok
             )
             if total_weight is None:
+                _finish_last()
                 return
-            correction_count += 1
+            # The re-entry replaces the bad reading, which was already
+            # counted: not another correction
             continue
         (tara, base, hardener, hardener_needed) = result
+        last = (tara, base, hardener)
         if hardener_needed < 0:
             what_needed = "base"
             mass_needed = -hardener_needed / part100 * 100
@@ -310,12 +357,9 @@ def interactive(min_readings=6, ratio=None, min_deviation=1.0, deviation_factor=
             what_needed = "hardener"
             mass_needed = hardener_needed
             target_amount = base * part100 / 100
-        total_epoxy = base + hardener
         current_threshold = min_deviation * (deviation_factor ** correction_count)
         if target_amount > 0 and mass_needed / target_amount < current_threshold / 100:
-            write_log(log_file, epoxy_type, tara, base, hardener, part100)
-            if epoxy_type:
-                save_epoxy_type(epoxy_type, part100)
+            _finish(log_file, epoxy_type, tara, base, hardener, part100)
             return
         if min_readings >= 6:
             click.echo(f"Try to add {mass_needed:.1f}g {what_needed}. Enter the observed total weight at least six times.")
@@ -325,6 +369,7 @@ def interactive(min_readings=6, ratio=None, min_deviation=1.0, deviation_factor=
             f"total weight tara+base+hardener after adding {what_needed}", min_readings, confirmed_ok=confirmed_ok
         )
         if total_weight is None:
+            _finish_last()
             return
         correction_count += 1
 
@@ -346,7 +391,7 @@ def interactive(min_readings=6, ratio=None, min_deviation=1.0, deviation_factor=
     default=1.0,
     type=float,
     show_default=True,
-    help="Stop when remaining mass deviation is below this percentage of total epoxy weight."
+    help="Stop when the remaining mass needed is below this percentage of the target amount of the component being added."
 )
 @click.option(
     "--deviation-factor",
